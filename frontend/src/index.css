@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+@theme {
+  --color-geist-background: #FAFAFA;
+  --color-geist-surface: #FFFFFF;
+  --color-geist-recessed: #F2F2F2;
+  --color-geist-text: #171717;
+  --color-geist-textSecondary: #4D4D4D;
+  --color-geist-muted: #8F8F8F;
+  --color-geist-blue: #0072F5;
+
+  --shadow-border: 0 0 0 1px #00000014, 0 0 0 1px #FFFFFF;
+  --shadow-border-small: 0 0 0 1px #00000014, 0 0 0 1px #FFFFFF, 0px 2px 2px #0000000a;
+  --shadow-border-medium: 0 0 0 1px #00000014, 0 0 0 1px #FFFFFF, 0px 2px 2px #0000000a, 0px 8px 8px -8px #0000000a;
+  --shadow-border-large: 0 0 0 1px #00000014, 0 0 0 1px #FFFFFF, 0px 2px 2px #0000000a, 0px 8px 16px -4px #0000000a;
+  --shadow-focus: 0 0 0 2px #FFF, 0 0 0 4px #0072F5;
+  
+  --radius-geist: 6px;
+  --radius-card: 12px;
+  
+  --spacing-small: 32px;
+  --spacing-medium: 40px;
+  --spacing-large: 48px;
+  --spacing-gap: 24px;
+}
+
+@layer base {
+  body {
+    @apply bg-geist-background text-geist-text antialiased;
+    font-family: 'Geist Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  
+  h1 {
+    @apply font-semibold text-[48px] leading-[48px] tracking-[-2.28px];
+  }
+  
+  h3 {
+    @apply font-semibold text-[32px] leading-[40px] tracking-[-1.28px];
+  }
+  
+  h2 {
+    @apply font-medium text-[14px] leading-[20px] tracking-[-0.28px];
+  }
+  
+  p, a, span {
+    @apply text-[16px] font-normal;
+  }
+  
+  .geist-button {
+    @apply h-medium px-4 inline-flex items-center justify-center rounded-geist text-[14px] transition-colors focus:outline-none focus:shadow-focus;
+  }
+  
+  .geist-button-primary {
+    @apply bg-geist-text text-white hover:bg-black/80;
+  }
+  
+  .geist-button-secondary {
+    @apply bg-transparent text-geist-textSecondary hover:bg-[#EBEBEB] hover:text-geist-text;
+  }
+  
+  .geist-card {
+    @apply bg-geist-surface shadow-border-medium rounded-card p-6;
+  }
+}
