@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Identity Verification</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        geist: {
+                            background: '#ffffff',
+                            text: '#000000',
+                            textSecondary: '#666666',
+                            recessed: '#fafafa',
+                            blue: '#0070f3',
+                            blueDark: '#0761d1',
+                            border: '#eaeaea'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #ffffff;
+            color: #000000;
+        }
+        .geist-card {
+            background: #ffffff;
+            border: 1px solid #eaeaea;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+        .geist-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 14px;
+            height: 40px;
+            padding: 0 16px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .geist-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .geist-button-primary {
+            background-color: #000000;
+            color: #ffffff;
+            border: 1px solid #000000;
+        }
+        .geist-button-primary:hover:not(:disabled) {
+            background-color: #333333;
+            border-color: #333333;
+        }
+        .geist-button-secondary {
+            background-color: #ffffff;
+            color: #000000;
+            border: 1px solid #eaeaea;
+        }
+        .geist-button-secondary:hover:not(:disabled) {
+            background-color: #fafafa;
+            border-color: #dcdcdc;
+        }
+        
+        .mirror {
+            transform: scaleX(-1);
+        }
+        
+        .loader {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #000000;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="min-h-screen py-16 px-6">
+    <div class="max-w-[800px] mx-auto">
+        <header class="mb-12 text-center">
+            <h1 class="text-3xl font-semibold tracking-tight">Identity Verification</h1>
+            <p class="mt-4 text-geist-textSecondary">
+                Scan your face to find matching social media profiles and verify them on-chain.
+            </p>
+        </header>
+
+        <!-- Initial / Capture View -->
+        <div id="captureView" class="geist-card max-w-[600px] mx-auto flex flex-col items-center">
+            <div class="relative w-64 h-64 mb-8 overflow-hidden rounded-full border-4 border-[#EBEBEB] bg-geist-recessed flex items-center justify-center">
+                <video id="webcam" autoplay playsinline muted class="absolute top-0 left-0 w-full h-full object-cover mirror"></video>
+                <img id="previewImg" class="w-full h-full object-cover mirror hidden" />
+                <div class="absolute inset-0 border-4 border-geist-blue rounded-full opacity-30 pointer-events-none"></div>
+            </div>
+
+            <canvas id="canvas" class="hidden"></canvas>
+
+            <div id="errorAlert" class="hidden mb-6 w-full flex items-center gap-3 text-red-600 bg-red-50 p-4 rounded text-sm">
+                <i data-lucide="alert-circle" class="w-5 h-5 flex-shrink-0"></i>
+                <span id="errorMessage"></span>
+            </div>
+
+            <button id="captureBtn" class="geist-button geist-button-primary w-full max-w-[300px]">
+                <i data-lucide="camera" class="w-4 h-4 mr-2"></i>
+                Capture Face
+            </button>
+
+            <div id="actionBtns" class="hidden flex gap-4 w-full max-w-[400px]">
+                <button id="retakeBtn" class="geist-button geist-button-secondary flex-1">
+                    <i data-lucide="refresh-ccw" class="w-4 h-4 mr-2"></i>
+                    Retake
+                </button>
+                <button id="verifyBtn" class="geist-button geist-button-primary flex-1">
+                    <span id="verifyText">Verify Identity</span>
+                    <div id="verifySpinner" class="loader hidden ml-2"></div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Result View -->
+        <div id="resultView" class="hidden space-y-6">
+            <div class="flex items-center gap-2 mb-6">
+                <button id="startOverBtn" class="text-sm text-geist-textSecondary hover:text-geist-text transition-colors">
+                    &larr; Start over
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Image Card -->
+                <div class="geist-card flex flex-col items-center justify-center">
+                    <img id="resultFaceImg" class="w-48 h-48 rounded-full object-cover shadow-sm mb-6 mirror" />
+                    <div class="flex items-center gap-2 text-green-600 text-sm font-medium">
+                        <div class="w-2.5 h-2.5 rounded-full bg-green-500"></div>
+                        Face Detected & Encoded
+                    </div>
+                </div>
+                
+                <!-- Match Card -->
+                <div class="geist-card">
+                    <h3 class="text-xl font-medium tracking-tight mb-6">Social Media Match</h3>
+                    
+                    <img id="resultThumbnail" class="w-full h-40 object-cover rounded mb-6 hidden" />
+                    
+                    <h2 id="resultTitle" class="mb-2 font-medium line-clamp-2"></h2>
+                    <a id="resultUrl" href="#" target="_blank" rel="noreferrer" class="flex items-center gap-2 text-geist-blue hover:underline text-sm mb-6 w-fit">
+                        <i data-lucide="link" class="w-4 h-4"></i>
+                        <span id="resultSource"></span>
+                    </a>
+                    
+                    <div class="pt-6 border-t border-geist-border">
+                        <h3 class="text-xl font-medium tracking-tight mb-4">Blockchain Record</h3>
+                        
+                        <div class="space-y-4 text-sm">
+                            <div class="flex justify-between items-center">
+                                <span class="text-geist-textSecondary">Status</span>
+                                <span class="flex items-center gap-1.5 font-medium">
+                                    <i data-lucide="check-circle-2" class="w-4 h-4 text-green-600"></i>
+                                    Verified
+                                </span>
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <span class="text-geist-textSecondary">Hash</span>
+                                <code id="resultHash" class="bg-geist-recessed px-2 py-1 rounded text-[13px] break-all border border-[#00000014]"></code>
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <span class="text-geist-textSecondary">Transaction ID</span>
+                                <a id="resultTxLink" href="#" target="_blank" rel="noreferrer" class="bg-geist-recessed px-2 py-1 rounded text-[13px] break-all border border-[#00000014] text-geist-blue hover:underline font-mono">
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // State
+        let stream = null;
+        let capturedFile = null;
+
+        // DOM Elements
+        const video = document.getElementById('webcam');
+        const canvas = document.getElementById('canvas');
+        const previewImg = document.getElementById('previewImg');
+        const captureBtn = document.getElementById('captureBtn');
+        const actionBtns = document.getElementById('actionBtns');
+        const retakeBtn = document.getElementById('retakeBtn');
+        const verifyBtn = document.getElementById('verifyBtn');
+        const verifyText = document.getElementById('verifyText');
+        const verifySpinner = document.getElementById('verifySpinner');
+        
+        const errorAlert = document.getElementById('errorAlert');
+        const errorMessage = document.getElementById('errorMessage');
+        
+        const captureView = document.getElementById('captureView');
+        const resultView = document.getElementById('resultView');
+        const startOverBtn = document.getElementById('startOverBtn');
+        
+        // Result elements
+        const resultFaceImg = document.getElementById('resultFaceImg');
+        const resultThumbnail = document.getElementById('resultThumbnail');
+        const resultTitle = document.getElementById('resultTitle');
+        const resultUrl = document.getElementById('resultUrl');
+        const resultSource = document.getElementById('resultSource');
+        const resultHash = document.getElementById('resultHash');
+        const resultTxLink = document.getElementById('resultTxLink');
+
+        async function startWebcam() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                hideError();
+                captureBtn.disabled = false;
+            } catch (err) {
+                showError("Failed to access webcam. Please ensure permissions are granted.");
+                captureBtn.disabled = true;
+            }
+        }
+
+        function stopWebcam() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+        }
+
+        function showError(msg) {
+            errorMessage.textContent = msg;
+            errorAlert.classList.remove('hidden');
+        }
+
+        function hideError() {
+            errorAlert.classList.add('hidden');
+        }
+
+        captureBtn.addEventListener('click', () => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            canvas.toBlob((blob) => {
+                capturedFile = new File([blob], "capture.jpg", { type: "image/jpeg" });
+                const url = URL.createObjectURL(capturedFile);
+                previewImg.src = url;
+                resultFaceImg.src = url;
+                
+                // Toggle UI
+                video.classList.add('hidden');
+                previewImg.classList.remove('hidden');
+                captureBtn.classList.add('hidden');
+                actionBtns.classList.remove('hidden');
+                
+                stopWebcam();
+            }, "image/jpeg", 0.9);
+        });
+
+        retakeBtn.addEventListener('click', () => {
+            previewImg.classList.add('hidden');
+            video.classList.remove('hidden');
+            captureBtn.classList.remove('hidden');
+            actionBtns.classList.add('hidden');
+            capturedFile = null;
+            startWebcam();
+        });
+
+        startOverBtn.addEventListener('click', () => {
+            resultView.classList.add('hidden');
+            captureView.classList.remove('hidden');
+            retakeBtn.click(); // Reset capture view
+        });
+
+        verifyBtn.addEventListener('click', async () => {
+            if (!capturedFile) return;
+            
+            // Loading state
+            verifyBtn.disabled = true;
+            retakeBtn.disabled = true;
+            verifyText.textContent = "Processing...";
+            verifySpinner.classList.remove('hidden');
+            hideError();
+            
+            const formData = new FormData();
+            formData.append('file', capturedFile);
+            
+            try {
+                // Since frontend and backend are served from the same server, use relative path
+                const response = await fetch('/api/process-face', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showResults(data);
+                } else {
+                    showError(data.error || "An error occurred during processing.");
+                }
+            } catch (err) {
+                showError("Failed to connect to the server.");
+            } finally {
+                verifyBtn.disabled = false;
+                retakeBtn.disabled = false;
+                verifyText.textContent = "Verify Identity";
+                verifySpinner.classList.add('hidden');
+            }
+        });
+
+        function showResults(data) {
+            captureView.classList.add('hidden');
+            resultView.classList.remove('hidden');
+            
+            const sr = data.search_result;
+            const br = data.blockchain_record;
+            
+            if (sr.thumbnail) {
+                resultThumbnail.src = sr.thumbnail;
+                resultThumbnail.classList.remove('hidden');
+            } else {
+                resultThumbnail.classList.add('hidden');
+            }
+            
+            resultTitle.textContent = sr.title || "Unknown Title";
+            resultUrl.href = sr.url || "#";
+            resultSource.textContent = sr.source || "Unknown Source";
+            
+            resultHash.textContent = br.hash;
+            resultTxLink.textContent = br.tx_id;
+            resultTxLink.href = `https://lora.algokit.io/testnet/transaction/${br.tx_id}`;
+        }
+
+        // Initialize
+        startWebcam();
+    </script>
+</body>
+</html>

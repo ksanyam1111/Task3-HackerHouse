@@ -1,7 +1,7 @@
 import os
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = "0"
 from fastapi import FastAPI, File, UploadFile, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import uvicorn
 import uuid
@@ -13,14 +13,10 @@ from blockchain_storage import verify_data_on_chain
 
 app = FastAPI(title="Face to Blockchain MVP")
 
-# Allow CORS for local frontend testing
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+
+@app.get("/")
+async def serve_frontend():
+    return FileResponse("index.html")
 
 @app.post("/api/process-face")
 async def process_face(file: UploadFile = File(...)):
